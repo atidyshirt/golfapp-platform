@@ -1,0 +1,27 @@
+# The one manually-applied resource. After this, ArgoCD manages everything
+# under argocd/applicationsets/ (including further ApplicationSets) purely
+# via GitOps from commits to this repo - an "app of appsets" pattern, same
+# shape as atidyshirt/homelab-argocd's cluster-bootstrap Application, one
+# level up (managing ApplicationSets instead of Applications directly).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cluster-bootstrap
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/atidyshirt/golfapp-platform
+    targetRevision: HEAD
+    path: argocd/applicationsets
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
