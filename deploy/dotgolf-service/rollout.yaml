@@ -1,0 +1,53 @@
+# Same argoproj.io Rollout pattern as ../api/rollout.yaml. No HTTPRoute
+# anywhere in this app's deploy/ (deliberately, carried over from
+# golfapp's original apps/dotgolf-service/deploy/rollout.yaml): this
+# service is cluster-internal only, called by apps/api's
+# DotGolfMembershipProvider over the cluster network, never exposed
+# publicly. canary-service.yaml still exists for in-cluster canary
+# inspection (e.g. port-forward) before promoting.
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: golfapp-dotgolf-service
+  labels:
+    app: golfapp-dotgolf-service
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: golfapp-dotgolf-service
+  template:
+    metadata:
+      labels:
+        app: golfapp-dotgolf-service
+    spec:
+      containers:
+        - name: dotgolf-service
+          image: ghcr.io/atidyshirt/golfapp-dotgolf-service:REPLACE_ME
+          ports:
+            - name: http
+              containerPort: 3000
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+  strategy:
+    canary:
+      canaryService: golfapp-dotgolf-service-canary
+      stableService: golfapp-dotgolf-service
+      steps:
+        - setWeight: 25
+        - pause: {}
+        - setWeight: 50
+        - pause:
+            duration: 60
+        - setWeight: 100

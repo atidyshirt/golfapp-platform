@@ -1,57 +1,37 @@
 # golfapp-platform
 
-Local kind cluster + ArgoCD bootstrap for [golfapp](https://github.com/atidyshirt/golf-ai-experiment). Kept as a separate repo from golfapp itself so cluster/platform concerns stay fully decoupled from the app's own code and issue tracking — golfapp's monorepo may get split apart later, and this repo shouldn't care either way.
+Deploy-side gitops repo for [golfapp](https://github.com/atidyshirt/golf-ai-experiment) (a private Nx monorepo with 3 independently-deployed apps: `api`, `web`, `dotgolf-service`). Structure is modeled on
+[homelab-app-template](https://github.com/atidyshirt/homelab-app-template)/[homelab-deploy-template](https://github.com/atidyshirt/homelab-deploy-template) — kept as a separate repo from golfapp itself so the pipeline's own image-tag-bump commits never collide with app commits, and so cluster/platform concerns stay decoupled from golfapp's own code and issue tracking.
 
-Modeled on the bootstrap shape already proven out in [atidyshirt/homelab-argocd](https://github.com/atidyshirt/homelab-argocd) (`argocd-bootstrap/` + a root "app of apps" `Application`), adapted for a local kind cluster instead of k3s/1Password, and one level up — the root `Application` here manages `ApplicationSet`s rather than individual `Application`s directly, so each app in golfapp is auto-discovered instead of hand-declared.
+Synced by the real home-server homelab cluster's ArgoCD, via `projects/golfapp-appset.yaml` in [home-server](https://github.com/atidyshirt/home-server) — a git directory generator that turns each `deploy/*` folder here into its own ArgoCD `Application`. `bootstrap/argocd/projects.yaml`'s `golf-application` `AppProject` scopes all of them to the `golf` namespace.
 
 ## Structure
 
 ```
-kind/kind-config.yaml               # local cluster config
-argocd-bootstrap/                   # one-time, manually-applied - installs ArgoCD itself
-  namespace.yaml
-  kustomization.yaml                 # pulls the official ArgoCD install manifest
-argocd/
-  bootstrap.yaml                     # the one other manually-applied resource - root "app of apps"
-  applicationsets/
-    platform-components.yaml         # cluster-wide deps (Argo Rollouts controller for now)
-    golfapp.yaml                     # git directory generator -> one ArgoCD Application per app in golfapp
+deploy/
+  api/               golfapp-api: Rollout (canary+preview), Service, canary Service, HTTPRoute, canary HTTPRoute
+  web/               golfapp-web: same shape as api/
+  dotgolf-service/   golfapp-dotgolf-service: Rollout, Service, canary Service only -- no
+                     HTTPRoute, deliberately: cluster-internal only, called by
+                     apps/api's DotGolfMembershipProvider, never exposed publicly
 ```
 
-## Bootstrap flow
+Each app's `canaryService`/`stableService` pair lets Argo Rollouts manage two distinct Services (no service mesh needed) so the in-flight canary is reachable on its own hostname
+(`golfapp-api-canary.homelab.arpa`, `golfapp-web-canary.homelab.arpa`) before promoting:
 
-```sh
-# 1. Create the local cluster
-kind create cluster --config kind/kind-config.yaml
-
-# 2. Install ArgoCD (one-time, not GitOps-managed - can't deploy itself from nothing)
-kubectl apply -k argocd-bootstrap/
-kubectl -n argocd wait --for=condition=available --timeout=300s deployment/argocd-server
-
-# 3. Register credentials for golfapp's private repo, so the golfapp
-#    ApplicationSet can actually clone it (do this before step 4, or the
-#    ApplicationSet will just fail to sync until you do)
-kubectl -n argocd exec -it deploy/argocd-repo-server -- argocd repo add \
-  git@github.com:atidyshirt/golf-ai-experiment.git \
-  --ssh-private-key-path /path/to/your/deploy-key
-# (or use `argocd repo add` from the argocd CLI against a port-forwarded
-# argocd-server, or a Secret of type `Opaque` with the
-# `argocd.argoproj.io/secret-type: repository` label - whatever's easiest
-# for your machine)
-
-# 4. Apply the root Application - from here on, everything is pure GitOps
-#    driven by commits to this repo
-kubectl apply -f argocd/bootstrap.yaml
+```bash
+kubectl argo rollouts get rollout golfapp-api -n golf --watch
+# ...inspect https://golfapp-api-canary.homelab.arpa...
+kubectl argo rollouts promote golfapp-api -n golf
 ```
 
-After step 4, ArgoCD syncs `argocd/applicationsets/*.yaml`, which in turn produce:
-- `platform-argo-rollouts` (an `Application` deploying the Argo Rollouts controller via its Helm chart)
-- `golfapp-api` / `golfapp-web` (one `Application` per `apps/*/deploy` folder found in golfapp, via the git directory generator)
+Domain templating (`addons_domain: placeholder-domain` + each `kustomization.yaml`'s `replacements` block) mirrors the gitops-bridge pattern used by home-server's own platform addons (`applications/dex/base`, `applications/traefik/base`) — the `golfapp-appset.yaml` ApplicationSet passes the real cluster domain down via `kustomize.commonAnnotations`, overwriting the placeholder at sync time. `kubectl kustomize deploy/<app>/` still works standalone without that wrapper.
 
-## Explicitly out of scope for now
+## What changed here
 
-Istio, Gateway API, user-segment canary/blue-green routing, org-level tenant isolation, NATS/messaging traffic-management. These become a future epic here once this base is proven out — see golfapp's AWP-11 for the fuller rationale.
+This repo used to bootstrap its own local `kind` cluster + standalone ArgoCD (app-of-appsets, a git-directory generator scanning golfapp's own `apps/*/deploy`). That's retired now that golfapp is wired into the real home-server pipeline end to end (build -> GHCR -> here -> ArgoCD -> canary). One consequence: golfapp's `Tiltfile` (fast local inner-loop dev) now reads its manifests from `../deploy/{api,web}/` in this repo (sibling checkout) instead of its own `apps/*/deploy` — see golfapp's `Tiltfile` for the up-to-date local dev flow. Local dev still just needs a bare `kind create cluster` + the Argo Rollouts controller installed (Tilt applies everything else directly, bypassing ArgoCD).
 
-## Local dev loop
+## Onboarding a new app in this monorepo
 
-This repo only gets you a cluster with ArgoCD running. For fast local iteration on golfapp itself once the cluster exists, see golfapp's own `Tiltfile` — it applies straight into this cluster, bypassing ArgoCD entirely so the two never fight over reconciling the same objects.
+1. Add `deploy/<app>/` here, modeled on `deploy/api/` (or `deploy/dotgolf-service/` if it's cluster-internal only) — `golfapp-appset.yaml`'s git directory generator picks it up automatically, no changes needed in home-server.
+2. Add a `trigger-<app>.yml` in golfapp's `.github/workflows/`, matching the existing `trigger-api.yml` pattern.

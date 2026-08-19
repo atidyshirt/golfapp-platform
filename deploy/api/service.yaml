@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: golfapp-api
+  labels:
+    app: golfapp-api
+spec:
+  selector:
+    app: golfapp-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
