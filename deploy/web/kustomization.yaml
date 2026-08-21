@@ -2,11 +2,15 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - rollout.yaml
-  - service.yaml
-  - canary-service.yaml
-  - httproute.yaml
-  - canary-httproute.yaml
+- rollout.yaml
+- service.yaml
+- canary-service.yaml
+- httproute.yaml
+- canary-httproute.yaml
 
 components:
-  - components/replacements
+- components/replacements
+images:
+- name: ghcr.io/atidyshirt/golfapp-web
+  newName: ghcr.io/atidyshirt/golfapp-web
+  newTag: c32cf874ff290406fcd0417ec254812dea8d00a3
