@@ -11,7 +11,7 @@ spec:
       name: lan-gateway
       namespace: traefik
   hostnames:
-    - golfapp-api.placeholder-domain
+    - golf-api.placeholder-domain
   rules:
     - backendRefs:
         - group: ''
