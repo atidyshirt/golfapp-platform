@@ -28,6 +28,12 @@ spec:
           ports:
             - name: http
               containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: development
+            # DOTGOLF_CLIENT_* deliberately unset, same as golfapp's own
+            # docker-compose.yml default - the service boots fine either
+            # way, only real DotGolf-backed lookups fail until configured.
           readinessProbe:
             httpGet:
               path: /health

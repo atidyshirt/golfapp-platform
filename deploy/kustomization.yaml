@@ -5,6 +5,7 @@ resources:
   - api
   - web
   - dotgolf-service
+  - postgres
 
 components:
   - api/components/replacements

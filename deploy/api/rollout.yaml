@@ -29,6 +29,34 @@ spec:
           ports:
             - name: http
               containerPort: 3000
+          env:
+            - name: DB_HOST
+              value: golfapp-postgres
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: golfapp
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: golfapp-postgres
+                  key: POSTGRES_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: golfapp-postgres
+                  key: POSTGRES_PASSWORD
+            # Not "production" - keeps GET /auth/dev-login enabled, same
+            # as golfapp's own docker-compose.yml (no real prod auth
+            # wired up yet - see app.module.ts's synchronize: comment).
+            - name: NODE_ENV
+              value: development
+            # Where auth redirects send the browser back to - must match
+            # the web HTTPRoute's real hostname.
+            - name: FRONTEND_ORIGIN
+              value: http://golfapp-web.homelab.arpa
+            - name: DOTGOLF_SERVICE_BASE_URL
+              value: http://golfapp-dotgolf-service
           readinessProbe:
             httpGet:
               path: /api/health

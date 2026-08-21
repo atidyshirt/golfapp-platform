@@ -1,0 +1,57 @@
+# StatefulSet, not a Rollout/Deployment - stable storage identity matters
+# for a database in a way it doesn't for the stateless api/web/
+# dotgolf-service apps, and canary/rolling-update semantics don't apply
+# to a single-instance datastore. Same postgres:16-alpine image as
+# golfapp's docker-compose.yml.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: golfapp-postgres
+  labels:
+    app: golfapp-postgres
+spec:
+  serviceName: golfapp-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: golfapp-postgres
+  template:
+    metadata:
+      labels:
+        app: golfapp-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - name: postgres
+              containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: golfapp-postgres
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+              # Postgres wants an empty dir to initdb into, not the
+              # lost+found-containing root of a freshly provisioned
+              # volume - matches golfapp-postgres-data's own subPath-free
+              # setup in docker-compose, but PVs commonly need this.
+              subPath: pgdata
+          readinessProbe:
+            exec:
+              command: [pg_isready, -U, golfapp]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: [pg_isready, -U, golfapp]
+            initialDelaySeconds: 10
+            periodSeconds: 20
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 5Gi

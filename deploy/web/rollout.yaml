@@ -25,6 +25,12 @@ spec:
           ports:
             - name: http
               containerPort: 80
+          env:
+            # nginx.conf.template's proxy_pass target (see golfapp's
+            # apps/web/nginx.conf.template) - "golfapp-api" is this
+            # cluster's Service name, not the "api" docker-compose uses.
+            - name: API_UPSTREAM
+              value: golfapp-api
           readinessProbe:
             httpGet:
               path: /
