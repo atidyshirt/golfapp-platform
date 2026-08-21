@@ -4,9 +4,49 @@ kind: Kustomization
 resources:
   - api
   - web
-  - dotgolf-service
   - postgres
+  # - dotgolf-service
 
-components:
-  - api/components/replacements
-  - web/components/replacements
+replacements:
+  - source:
+      kind: Rollout
+      name: golfapp-api
+      fieldPath: metadata.annotations.addons_domain
+    targets:
+      - select:
+          kind: HTTPRoute
+          name: golfapp-api
+        fieldPaths:
+          - spec.hostnames.0
+        options:
+          delimiter: '.'
+          index: 1
+      - select:
+          kind: HTTPRoute
+          name: golfapp-api-canary
+        fieldPaths:
+          - spec.hostnames.0
+        options:
+          delimiter: '.'
+          index: 1
+  - source:
+      kind: Rollout
+      name: golfapp-web
+      fieldPath: metadata.annotations.addons_domain
+    targets:
+      - select:
+          kind: HTTPRoute
+          name: golfapp-web
+        fieldPaths:
+          - spec.hostnames.0
+        options:
+          delimiter: '.'
+          index: 1
+      - select:
+          kind: HTTPRoute
+          name: golfapp-web-canary
+        fieldPaths:
+          - spec.hostnames.0
+        options:
+          delimiter: '.'
+          index: 1

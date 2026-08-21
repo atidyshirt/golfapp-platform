@@ -8,9 +8,6 @@ resources:
 - httproute.yaml
 - canary-httproute.yaml
 
-components:
-- components/replacements
-
 images:
 - name: ghcr.io/atidyshirt/golfapp-api
   newName: ghcr.io/atidyshirt/golfapp-api
