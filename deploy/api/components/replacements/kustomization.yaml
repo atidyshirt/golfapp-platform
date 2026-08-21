@@ -1,0 +1,37 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+# See homelab-deploy-template's kustomization.yaml for the full explanation
+# of this gitops-bridge domain-templating pattern.
+#
+# Factored out as a Component (rather than inlined in deploy/api's own
+# replacements block) so both deploy/api/kustomization.yaml (standalone
+# builds) and the top-level deploy/kustomization.yaml (combined
+# Application) can reference the same rules without duplicating them.
+# Unlike a nested Kustomization's transformers, a Component's
+# replacements run against whatever resources have already accumulated
+# in the *including* build - so this also works correctly once the
+# top level merges api+web+dotgolf-service and layers its own
+# commonAnnotations on top.
+replacements:
+  - source:
+      kind: Rollout
+      name: golfapp-api
+      fieldPath: metadata.annotations.addons_domain
+    targets:
+      - select:
+          kind: HTTPRoute
+          name: golfapp-api
+        fieldPaths:
+          - spec.hostnames.0
+        options:
+          delimiter: '.'
+          index: 1
+      - select:
+          kind: HTTPRoute
+          name: golfapp-api-canary
+        fieldPaths:
+          - spec.hostnames.0
+        options:
+          delimiter: '.'
+          index: 1

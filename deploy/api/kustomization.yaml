@@ -8,30 +8,9 @@ resources:
 - httproute.yaml
 - canary-httproute.yaml
 
-# See homelab-deploy-template's kustomization.yaml for the full explanation
-# of this gitops-bridge domain-templating pattern.
-replacements:
-- source:
-    fieldPath: metadata.annotations.addons_domain
-    kind: Rollout
-    name: golfapp-api
-  targets:
-  - fieldPaths:
-    - spec.hostnames.0
-    options:
-      delimiter: .
-      index: 1
-    select:
-      kind: HTTPRoute
-      name: golfapp-api
-  - fieldPaths:
-    - spec.hostnames.0
-    options:
-      delimiter: .
-      index: 1
-    select:
-      kind: HTTPRoute
-      name: golfapp-api-canary
+components:
+- components/replacements
+
 images:
 - name: ghcr.io/atidyshirt/golfapp-api
   newName: ghcr.io/atidyshirt/golfapp-api
