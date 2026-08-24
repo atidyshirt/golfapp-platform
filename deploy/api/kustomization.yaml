@@ -11,4 +11,4 @@ resources:
 images:
 - name: ghcr.io/atidyshirt/golfapp-api
   newName: ghcr.io/atidyshirt/golfapp-api
-  newTag: 5c632436730d351c3f4cfb6236ff4f40a0efe97e
+  newTag: 665af45a4ac60cb1b6dddabd855a79c0f0dbaf77
