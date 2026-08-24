@@ -63,6 +63,29 @@ spec:
             # just a corrected static value.
             - name: FRONTEND_ORIGIN
               value: https://golf.homelab.arpa
+            # DexStrategy (apps/api/src/app/auth/dex.strategy.ts) - golfapp
+            # registered as a Dex static client (id: golfapp), not talking to
+            # Auth0 directly, per home-server's use-standalone-dex-for-sso
+            # ADR. DEX_CLIENT_SECRET comes from the oidc-dex OnePasswordItem
+            # (onepassword-item.yaml) - the same underlying 1Password item
+            # Dex itself reads, synced into this namespace since Secrets are
+            # namespace-scoped.
+            - name: DEX_ISSUER
+              value: https://dex.homelab.arpa
+            - name: DEX_CLIENT_ID
+              value: golfapp
+            - name: DEX_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: oidc-dex
+                  key: golfapp
+            # Same shared-template limitation as FRONTEND_ORIGIN above - both
+            # golf.homelab.arpa and golf-canary.homelab.arpa are registered
+            # as valid Dex redirect URIs, but this static value means canary
+            # logins still redirect back to the stable host post-callback
+            # until AWP-59's host-aware routing fix lands.
+            - name: DEX_CALLBACK_URL
+              value: https://golf.homelab.arpa/api/auth/dex/callback
             - name: DOTGOLF_SERVICE_BASE_URL
               value: http://golfapp-dotgolf-service
           readinessProbe:
