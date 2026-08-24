@@ -52,9 +52,17 @@ spec:
             - name: NODE_ENV
               value: development
             # Where auth redirects send the browser back to - must match
-            # the web HTTPRoute's real hostname.
+            # the web HTTPRoute's real hostname (golf.<domain>, not the
+            # golfapp-web Service name, and https:// - the gateway
+            # terminates TLS). Was previously wrong on both counts (AWP-58),
+            # which broke the post-login redirect regardless of OAuth
+            # provider config. Shared by canary and stable pods (one
+            # Rollout template) - a canary-hosted login currently redirects
+            # back to the stable host, not golf-canary; a known follow-up,
+            # not fixed here since it needs host-aware redirect logic, not
+            # just a corrected static value.
             - name: FRONTEND_ORIGIN
-              value: http://golfapp-web.homelab.arpa
+              value: https://golf.homelab.arpa
             - name: DOTGOLF_SERVICE_BASE_URL
               value: http://golfapp-dotgolf-service
           readinessProbe:
