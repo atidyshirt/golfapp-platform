@@ -2,6 +2,10 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - rollout.yaml
-  - service.yaml
-  - canary-service.yaml
+- rollout.yaml
+- service.yaml
+- canary-service.yaml
+images:
+- name: ghcr.io/atidyshirt/golfapp-dotgolf-service
+  newName: ghcr.io/atidyshirt/golfapp-dotgolf-service
+  newTag: d6785df842f448fd3b4d6f9990a4ad8777c215c2
