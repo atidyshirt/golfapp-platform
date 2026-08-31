@@ -52,6 +52,16 @@ spec:
         name: data
       spec:
         accessModes: [ReadWriteOnce]
+        # No default StorageClass exists in this cluster, and this field
+        # was left unset - the PVC never bound ("no persistent volumes
+        # available for this claim and no storage class is set"),
+        # confirmed live. workspace-nfs is the established convention for
+        # real (non-scratch) storage elsewhere in the homelab (see
+        # applications/argo-workflows/base/workflowtemplates/build-and-
+        # deploy.yaml), so used here too rather than local-path, which
+        # would pin this StatefulSet to whichever single node happens to
+        # provision it first.
+        storageClassName: workspace-nfs
         resources:
           requests:
             storage: 5Gi
