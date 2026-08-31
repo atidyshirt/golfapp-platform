@@ -8,4 +8,4 @@ resources:
 images:
 - name: ghcr.io/atidyshirt/golfapp-dotgolf-service
   newName: ghcr.io/atidyshirt/golfapp-dotgolf-service
-  newTag: 14a12e0a4a9f87c2e5d85d9f68f32b5e760ad1bb
+  newTag: 0399fd6f0a5036a777cf2696529951f3af5f4759
