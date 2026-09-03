@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: golfapp-postgres-bootstrap-db
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: bootstrap-db
+          image: postgres:16-alpine
+          envFrom:
+            - secretRef:
+                name: golfapp-postgres
+          command: [sh, -c]
+          args:
+            - |
+              set -eu
+              export PGPASSWORD="$POSTGRES_PASSWORD"
+
+              until pg_isready -h golfapp-postgres -U "$POSTGRES_USER"; do
+                echo "waiting for golfapp-postgres..."
+                sleep 2
+              done
+
+              exists=$(psql -h golfapp-postgres -U "$POSTGRES_USER" -d postgres -tAc \
+                "SELECT 1 FROM pg_database WHERE datname = '$POSTGRES_DB'")
+              if [ "$exists" = "1" ]; then
+                echo "database $POSTGRES_DB already exists, nothing to do"
+              else
+                echo "creating database $POSTGRES_DB"
+                psql -h golfapp-postgres -U "$POSTGRES_USER" -d postgres -c \
+                  "CREATE DATABASE \"$POSTGRES_DB\""
+              fi

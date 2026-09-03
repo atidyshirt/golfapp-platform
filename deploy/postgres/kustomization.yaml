@@ -3,5 +3,7 @@ kind: Kustomization
 
 resources:
   - secret.yaml
+  - pg-hba-configmap.yaml
   - statefulset.yaml
   - service.yaml
+  - bootstrap-db-job.yaml

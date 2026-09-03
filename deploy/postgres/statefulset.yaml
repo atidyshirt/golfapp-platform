@@ -23,6 +23,9 @@ spec:
       containers:
         - name: postgres
           image: postgres:16-alpine
+          args:
+            - -c
+            - hba_file=/etc/postgresql/pg_hba.conf
           ports:
             - name: postgres
               containerPort: 5432
@@ -37,6 +40,10 @@ spec:
               # volume - matches golfapp-postgres-data's own subPath-free
               # setup in docker-compose, but PVs commonly need this.
               subPath: pgdata
+            - name: hba-config
+              mountPath: /etc/postgresql/pg_hba.conf
+              subPath: pg_hba.conf
+              readOnly: true
           readinessProbe:
             exec:
               command: [pg_isready, -U, golfapp]
@@ -47,6 +54,10 @@ spec:
               command: [pg_isready, -U, golfapp]
             initialDelaySeconds: 10
             periodSeconds: 20
+      volumes:
+        - name: hba-config
+          configMap:
+            name: golfapp-postgres-hba
   volumeClaimTemplates:
     - metadata:
         name: data
