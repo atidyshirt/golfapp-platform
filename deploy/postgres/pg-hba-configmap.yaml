@@ -1,16 +1,3 @@
-# Custom pg_hba.conf, mounted into the postgres container and loaded via
-# `-c hba_file=...` (see statefulset.yaml) instead of relying on the
-# postgres image's own entrypoint-generated one. That file is only ever
-# written during initdb, on a genuinely empty data directory - if the
-# PVC's data dir already has content from a prior init (e.g. predating
-# this repo's config, or left over from #4's storageClass migration),
-# the entrypoint skips writing it entirely and whatever pg_hba.conf
-# already happens to be on disk wins, silently. Managing it here means
-# the effective auth config is git-tracked and takes effect on every pod
-# (re)start regardless of PVC history - this is what actually caused "no
-# pg_hba.conf entry for host ..., no encryption" for the golfapp-api pod
-# (confirmed live): the stale PVC's on-disk pg_hba.conf predates any
-# entry for the pod network.
 apiVersion: v1
 kind: ConfigMap
 metadata:
