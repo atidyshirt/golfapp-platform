@@ -3,10 +3,11 @@ kind: Kustomization
 
 resources:
 - rollout.yaml
+- analysistemplate.yaml
 - service.yaml
-- canary-service.yaml
+- preview-service.yaml
 - httproute.yaml
-- canary-httproute.yaml
+- preview-httproute.yaml
 
 images:
 - name: ghcr.io/atidyshirt/golfapp-web

@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: golfapp-synthetic-traffic
+  labels:
+    app: golfapp-synthetic-traffic
+  annotations:
+    docs: docs/rollout-automation.md
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: golfapp-synthetic-traffic
+  template:
+    metadata:
+      labels:
+        app: golfapp-synthetic-traffic
+    spec:
+      containers:
+        - name: synthetic-traffic
+          image: curlimages/curl:8.11.1
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              while true; do
+                for url in \
+                  "http://golfapp-api-preview/api/health" \
+                  "http://golfapp-api-preview/api" \
+                  "http://golfapp-web-preview/"; do
+                  curl -s -o /dev/null -m 5 \
+                    -H "User-Agent: golfapp-synthetic-traffic/1.0" \
+                    -H "X-Synthetic-Traffic: true" \
+                    "$url" || true
+                  sleep 10
+                done
+              done
+          resources:
+            requests:
+              cpu: 5m
+              memory: 8Mi
+            limits:
+              cpu: 20m
+              memory: 32Mi

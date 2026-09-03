@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: golfapp-web-canary
+  name: golfapp-api-preview
   labels:
-    app: golfapp-web
+    app: golfapp-api
 spec:
   selector:
-    app: golfapp-web
+    app: golfapp-api
   ports:
     - name: http
       port: 80

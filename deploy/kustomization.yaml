@@ -5,6 +5,7 @@ resources:
   - api
   - web
   - postgres
+  - synthetic-traffic
   # - dotgolf-service
 
 replacements:
@@ -23,7 +24,7 @@ replacements:
           index: 1
       - select:
           kind: HTTPRoute
-          name: golfapp-api-canary
+          name: golfapp-api-preview
         fieldPaths:
           - spec.hostnames.0
         options:
@@ -44,7 +45,7 @@ replacements:
           index: 1
       - select:
           kind: HTTPRoute
-          name: golfapp-web-canary
+          name: golfapp-web-preview
         fieldPaths:
           - spec.hostnames.0
         options:
