@@ -23,12 +23,6 @@ spec:
       containers:
         - name: postgres
           image: postgres:16-alpine
-          # Forces the git-tracked pg_hba.conf (see pg-hba-configmap.yaml)
-          # to be the one actually loaded, instead of whatever the
-          # entrypoint's own initdb-time generation left on the PVC (or
-          # didn't - it only writes pg_hba.conf on a genuinely empty data
-          # dir, so a PVC with any prior content silently keeps stale
-          # auth rules forever otherwise).
           args:
             - -c
             - hba_file=/etc/postgresql/pg_hba.conf
