@@ -1,17 +1,3 @@
-# Per-PR preview overlay (ATI-83) - api + web + postgres-preview, single replica each, tight
-# resource requests/limits. Per-PR hostname and image-tag substitution happen at the
-# ApplicationSet level (home-server's addon-golfapp-preview-appset.yaml), not here - see
-# home-server's docs/adr/golfapp-pr-preview-environments.md.
-#
-# Pulls in ../api and ../web as kustomize bases (not individual files - kustomize's default
-# load restrictor forbids resource paths that resolve to a file outside this directory, only
-# directories/nested kustomizations may cross it) and deletes the pieces that don't belong in a
-# single-replica, disposable preview: prod's blue/green preview Service/HTTPRoute/
-# AnalysisTemplate pairs (never promoted, so pointless here), api's own external HTTPRoute
-# (its nginx already proxies /api to the in-cluster golfapp-api Service via web's rollout.yaml
-# API_UPSTREAM env var, so no direct external access is needed), and api's onepassword-item.yaml
-# (hardcodes namespace: golf - wrong for a per-PR namespace; onepassword-item.yaml alongside
-# this file is the correctly-scoped replacement).
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
