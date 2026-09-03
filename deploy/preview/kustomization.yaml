@@ -1,0 +1,134 @@
+# Per-PR preview overlay (ATI-83) - api + web + postgres-preview, single replica each, tight
+# resource requests/limits. Per-PR hostname and image-tag substitution happen at the
+# ApplicationSet level (home-server's addon-golfapp-preview-appset.yaml), not here - see
+# home-server's docs/adr/golfapp-pr-preview-environments.md.
+#
+# Pulls in ../api and ../web as kustomize bases (not individual files - kustomize's default
+# load restrictor forbids resource paths that resolve to a file outside this directory, only
+# directories/nested kustomizations may cross it) and deletes the pieces that don't belong in a
+# single-replica, disposable preview: prod's blue/green preview Service/HTTPRoute/
+# AnalysisTemplate pairs (never promoted, so pointless here), api's own external HTTPRoute
+# (its nginx already proxies /api to the in-cluster golfapp-api Service via web's rollout.yaml
+# API_UPSTREAM env var, so no direct external access is needed), and api's onepassword-item.yaml
+# (hardcodes namespace: golf - wrong for a per-PR namespace; onepassword-item.yaml alongside
+# this file is the correctly-scoped replacement).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../api
+  - ../web
+  - ../postgres-preview
+  - onepassword-item.yaml
+
+patches:
+  - target:
+      kind: Service
+      name: golfapp-api-preview
+    patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: golfapp-api-preview
+  - target:
+      kind: HTTPRoute
+      name: golfapp-api-preview
+    patch: |-
+      $patch: delete
+      apiVersion: gateway.networking.k8s.io/v1
+      kind: HTTPRoute
+      metadata:
+        name: golfapp-api-preview
+  - target:
+      kind: HTTPRoute
+      name: golfapp-api
+    patch: |-
+      $patch: delete
+      apiVersion: gateway.networking.k8s.io/v1
+      kind: HTTPRoute
+      metadata:
+        name: golfapp-api
+  - target:
+      kind: AnalysisTemplate
+      name: golfapp-api-health-check
+    patch: |-
+      $patch: delete
+      apiVersion: argoproj.io/v1alpha1
+      kind: AnalysisTemplate
+      metadata:
+        name: golfapp-api-health-check
+  - target:
+      kind: OnePasswordItem
+      name: oidc-dex
+      namespace: golf
+    patch: |-
+      $patch: delete
+      apiVersion: onepassword.com/v1
+      kind: OnePasswordItem
+      metadata:
+        name: oidc-dex
+        namespace: golf
+  - target:
+      kind: Service
+      name: golfapp-web-preview
+    patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: golfapp-web-preview
+  - target:
+      kind: HTTPRoute
+      name: golfapp-web-preview
+    patch: |-
+      $patch: delete
+      apiVersion: gateway.networking.k8s.io/v1
+      kind: HTTPRoute
+      metadata:
+        name: golfapp-web-preview
+  - target:
+      kind: AnalysisTemplate
+      name: golfapp-web-health-check
+    patch: |-
+      $patch: delete
+      apiVersion: argoproj.io/v1alpha1
+      kind: AnalysisTemplate
+      metadata:
+        name: golfapp-web-health-check
+  - target:
+      kind: Rollout
+      name: golfapp-api
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: remove
+        path: /spec/strategy
+      - op: add
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
+  - target:
+      kind: Rollout
+      name: golfapp-web
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: remove
+        path: /spec/strategy
+      - op: add
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi

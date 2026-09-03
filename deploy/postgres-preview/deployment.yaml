@@ -1,0 +1,73 @@
+# Deployment + emptyDir instead of prod's StatefulSet + workspace-nfs PVC
+# (deploy/postgres/statefulset.yaml) - preview data is disposable by design
+# (see home-server's docs/adr/golfapp-pr-preview-environments.md), so there's
+# no need for stable storage identity or a real volume. Reuses prod's
+# Service/Secret *names* (golfapp-postgres) so golfapp-api's existing
+# DB_HOST/DB_USERNAME/DB_PASSWORD env vars need no changes.
+#
+# Keeps prod's pg_hba.conf override (pg-hba-configmap.yaml) - without it the
+# api pod can't authenticate over the in-cluster Service (pod-network, not
+# localhost), the same connectivity gap prod's own bootstrap-db-job/pg_hba
+# fix (golfapp-platform#5) addressed. Skips that bootstrap-db-job itself:
+# it exists to fix a stale/pre-existing PVC that predates POSTGRES_DB being
+# respected - emptyDir starts genuinely empty every time, so postgres's own
+# entrypoint auto-creates POSTGRES_DB on initdb with no help needed.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: golfapp-postgres
+  labels:
+    app: golfapp-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: golfapp-postgres
+  template:
+    metadata:
+      labels:
+        app: golfapp-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          args:
+            - -c
+            - hba_file=/etc/postgresql/pg_hba.conf
+          ports:
+            - name: postgres
+              containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: golfapp-postgres
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+              subPath: pgdata
+            - name: hba-config
+              mountPath: /etc/postgresql/pg_hba.conf
+              subPath: pg_hba.conf
+              readOnly: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          readinessProbe:
+            exec:
+              command: [pg_isready, -U, golfapp]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: [pg_isready, -U, golfapp]
+            initialDelaySeconds: 10
+            periodSeconds: 20
+      volumes:
+        - name: data
+          emptyDir: {}
+        - name: hba-config
+          configMap:
+            name: golfapp-postgres-hba
