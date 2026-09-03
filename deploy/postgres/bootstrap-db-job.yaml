@@ -1,22 +1,3 @@
-# PostSync hook, not PreSync: this needs golfapp-postgres already synced
-# *and* healthy (readinessProbe passing) so there's something to connect
-# to. Every other hook Job in this homelab (see ghcr-pull-secret's
-# job.yaml) is PreSync because it creates a prerequisite that must exist
-# *before* the rest of a sync applies - the opposite ordering from what's
-# needed here.
-#
-# Idempotent by design, and deliberately left in place to rerun on every
-# sync rather than being a one-shot: the entire reason this exists is
-# that postgres's own POSTGRES_DB bootstrap only runs against a
-# genuinely empty data directory on first init. A PVC that already has
-# any prior data dir content (predating POSTGRES_DB being set correctly,
-# or left over from #4's storageClass migration requiring a PVC
-# recreation) will never retroactively get "golfapp" created - confirmed
-# live via the postgres pod's repeated `database "golfapp" does not
-# exist` FATALs. Before this, that gap was silently papered over by
-# someone running a manual `CREATE DATABASE` by hand at some point -
-# tribal knowledge, invisible until the next from-scratch rebuild or PVC
-# recreation. This makes that step git-tracked and repeatable instead.
 apiVersion: batch/v1
 kind: Job
 metadata:
