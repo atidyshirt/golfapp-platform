@@ -8,12 +8,4 @@ data:
     local   all             all                                     trust
     host    all             all             127.0.0.1/32            trust
     host    all             all             ::1/128                 trust
-
-    # 10.244.0.0/16 is k0s's default pod CIDR on this cluster (see
-    # home-server's docs/provisioning.md, and the same CIDR used to scope
-    # the workspace-nfs export's client access) - in-cluster pods (e.g.
-    # golfapp-api) authenticate with a password without needing SSL,
-    # matching that same "trust the pod network, not the world" scoping
-    # rather than requiring encryption for traffic that never leaves the
-    # cluster network.
     host    all             all             10.244.0.0/16           scram-sha-256
