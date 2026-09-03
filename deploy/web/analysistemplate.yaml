@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: golfapp-web-health-check
+  annotations:
+    docs: docs/rollout-automation.md
+spec:
+  args:
+    - name: rollouts-pod-template-hash
+  metrics:
+    - name: no-pod-restarts
+      interval: 30s
+      count: 4
+      failureLimit: 1
+      successCondition: result[0] == 0
+      provider:
+        prometheus:
+          address: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+          query: |
+            sum(increase(kube_pod_container_status_restarts_total{namespace="golf", pod=~"golfapp-web-{{args.rollouts-pod-template-hash}}-.*"}[2m])) OR on() vector(0)
+    - name: pods-ready
+      interval: 30s
+      count: 4
+      failureLimit: 1
+      successCondition: result[0] == 0
+      provider:
+        prometheus:
+          address: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+          query: |
+            sum(kube_pod_status_ready{namespace="golf", condition="false", pod=~"golfapp-web-{{args.rollouts-pod-template-hash}}-.*"}) OR on() vector(0)

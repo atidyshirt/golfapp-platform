@@ -3,10 +3,11 @@ kind: Kustomization
 
 resources:
 - rollout.yaml
+- analysistemplate.yaml
 - service.yaml
-- canary-service.yaml
+- preview-service.yaml
 - httproute.yaml
-- canary-httproute.yaml
+- preview-httproute.yaml
 - onepassword-item.yaml
 
 images:

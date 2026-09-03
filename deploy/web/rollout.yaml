@@ -1,5 +1,3 @@
-# See deploy/api/rollout.yaml for the rationale. Canary steps unchanged
-# from golfapp's original apps/web/deploy/rollout.yaml.
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
@@ -8,6 +6,7 @@ metadata:
     app: golfapp-web
   annotations:
     addons_domain: placeholder-domain
+    docs: docs/rollout-automation.md
 spec:
   replicas: 2
   revisionHistoryLimit: 3
@@ -44,13 +43,14 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 20
   strategy:
-    canary:
-      canaryService: golfapp-web-canary
-      stableService: golfapp-web
-      steps:
-        - setWeight: 25
-        - pause: {}
-        - setWeight: 50
-        - pause:
-            duration: 60
-        - setWeight: 100
+    blueGreen:
+      activeService: golfapp-web
+      previewService: golfapp-web-preview
+      autoPromotionEnabled: true
+      prePromotionAnalysis:
+        templates:
+          - templateName: golfapp-web-health-check
+        args:
+          - name: rollouts-pod-template-hash
+            valueFrom:
+              podTemplateHashValue: Latest
