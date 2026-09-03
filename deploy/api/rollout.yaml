@@ -18,6 +18,35 @@ spec:
       labels:
         app: golfapp-api
     spec:
+      initContainers:
+        - name: ensure-db
+          image: postgres:16-alpine
+          env:
+            - name: DB_HOST
+              value: golfapp-postgres
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: golfapp
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: golfapp-postgres
+                  key: POSTGRES_USER
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: golfapp-postgres
+                  key: POSTGRES_PASSWORD
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USERNAME"; do sleep 2; done
+              psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USERNAME" -d template1 -tAc \
+                "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME'" | grep -q 1 \
+                || psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USERNAME" -d template1 \
+                  -c "CREATE DATABASE \"$DB_NAME\" OWNER \"$DB_USERNAME\""
       containers:
         - name: api
           image: ghcr.io/atidyshirt/golfapp-api:REPLACE_ME
