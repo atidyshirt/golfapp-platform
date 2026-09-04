@@ -2,9 +2,9 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - ../api
-  - ../web
-  - ../postgres-preview
+  - ../../base/services/api
+  - ../../base/services/web
+  - ../../base/mocks/postgres
   - onepassword-item.yaml
   - ghcr-pull-secret-onepassword-item.yaml
   - ghcr-pull-secret-rbac.yaml

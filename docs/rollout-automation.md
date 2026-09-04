@@ -2,8 +2,8 @@
 
 ## Status
 
-Accepted. Applies to `deploy/api` and `deploy/web`. `deploy/dotgolf-service` is unchanged (it isn't
-even enabled in `deploy/kustomization.yaml` today) and can adopt the same pattern later if it's
+Accepted. Applies to `deploy/base/services/api` and `deploy/base/services/web`. `deploy/base/services/dotgolf-service` is unchanged (it isn't
+even enabled in `deploy/overlays/production/kustomization.yaml` today) and can adopt the same pattern later if it's
 turned on.
 
 ## Problem
@@ -16,8 +16,8 @@ deploys, a stuck rollout just sits paused until someone happens to notice.
 
 ## Blue/green strategy
 
-`spec.strategy.blueGreen` replaces `spec.strategy.canary` in both `deploy/api/rollout.yaml` and
-`deploy/web/rollout.yaml`:
+`spec.strategy.blueGreen` replaces `spec.strategy.canary` in both `deploy/base/services/api/rollout.yaml` and
+`deploy/base/services/web/rollout.yaml`:
 
 - `activeService` (`golfapp-api` / `golfapp-web`) keeps serving 100% of real traffic from the old
   ReplicaSet until the new one is promoted - never partial-weighted.
@@ -37,7 +37,7 @@ below is proven out, but isn't part of this change.
 
 ## Automated promotion policy
 
-`deploy/api/analysistemplate.yaml` and `deploy/web/analysistemplate.yaml` define `AnalysisTemplate`s
+`deploy/base/services/api/analysistemplate.yaml` and `deploy/base/services/web/analysistemplate.yaml` define `AnalysisTemplate`s
 referenced by each Rollout's `prePromotionAnalysis`. Argo Rollouts injects
 `rollouts-pod-template-hash` (via `valueFrom: podTemplateHashValue: Latest`) so every query is
 scoped to only the new ReplicaSet's pods, matched on the `pod` label's `<rollout>-<hash>-<random>`
@@ -76,7 +76,7 @@ gating. Until then, the two metrics above are the real, working starting point.
 
 ## Synthetic traffic
 
-`deploy/synthetic-traffic/deployment.yaml` is a single-replica `Deployment` (not a `CronJob`) that
+`deploy/base/services/synthetic-traffic/deployment.yaml` is a single-replica `Deployment` (not a `CronJob`) that
 loops `curl` against `golfapp-api-preview`'s `/api/health` and `/api`, and `golfapp-web-preview`'s
 `/`, roughly every 30s per endpoint (~6 requests/minute total). A `Deployment` was chosen over a
 `CronJob` because `prePromotionAnalysis` can start at any point in a deploy, and a `CronJob`'s
@@ -94,7 +94,7 @@ the new, not-yet-promoted ReplicaSet during the exact window that matters.
 today (everything else - `/api/courses/*`, `/api/rounds/*`, `/api/matches/*`, `/api/auth/me`, etc.
 - requires a JWT via `JwtAuthGuard`). Deeper "core" endpoint coverage would mean either scripting
 the `GET /auth/dev-login` bypass (real, and enabled in this cluster's `NODE_ENV=development`
-config - see `deploy/api/rollout.yaml` - but it depends on a demo user being seeded via golfapp's
+config - see `deploy/base/services/api/rollout.yaml` - but it depends on a demo user being seeded via golfapp's
 own `npm run demo:seed`, external state this repo doesn't control; failing that silently would
 mean every synthetic request 404s and permanently red the error-rate signal once one exists) or a
 golfapp-side change to add a stable, unauthenticated read endpoint for this purpose. Neither is
@@ -127,6 +127,6 @@ kubectl argo rollouts undo golfapp-api -n golf        # roll back a bad promotio
 - Once that lands, add a `ServiceMonitor` here and extend both `AnalysisTemplate`s.
 - Consider a tuned canary strategy (gradual `setWeight` + per-step analysis) once the current
   restart/readiness-based gate has a track record.
-- Host-aware OAuth redirects (`AWP-59`, referenced in `deploy/api/rollout.yaml`) so a
+- Host-aware OAuth redirects (`AWP-59`, referenced in `deploy/base/services/api/rollout.yaml`) so a
   preview-hosted login doesn't bounce back to the active host - unrelated to this change but noted
   since the preview Service naming makes it more visible.
