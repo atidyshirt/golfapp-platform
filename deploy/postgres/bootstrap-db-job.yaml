@@ -27,12 +27,24 @@ spec:
                 sleep 2
               done
 
-              exists=$(psql -h golfapp-postgres -U "$POSTGRES_USER" -d postgres -tAc \
-                "SELECT 1 FROM pg_database WHERE datname = '$POSTGRES_DB'")
-              if [ "$exists" = "1" ]; then
-                echo "database $POSTGRES_DB already exists, nothing to do"
-              else
-                echo "creating database $POSTGRES_DB"
-                psql -h golfapp-postgres -U "$POSTGRES_USER" -d postgres -c \
-                  "CREATE DATABASE \"$POSTGRES_DB\""
-              fi
+              # Connect via template1, not postgres: template1 is created
+              # earlier in initdb than postgres is, so it's still there even
+              # on a cluster whose initdb got killed before its final step -
+              # seen live, where golfapp-postgres-0's PVC was left with
+              # template0/template1 but no postgres db, permanently wedging
+              # any hook that assumed postgres always exists.
+              create_db_if_missing() {
+                db="$1"
+                exists=$(psql -h golfapp-postgres -U "$POSTGRES_USER" -d template1 -tAc \
+                  "SELECT 1 FROM pg_database WHERE datname = '$db'")
+                if [ "$exists" = "1" ]; then
+                  echo "database $db already exists, nothing to do"
+                else
+                  echo "creating database $db"
+                  psql -h golfapp-postgres -U "$POSTGRES_USER" -d template1 -c \
+                    "CREATE DATABASE \"$db\""
+                fi
+              }
+
+              create_db_if_missing postgres
+              create_db_if_missing "$POSTGRES_DB"
