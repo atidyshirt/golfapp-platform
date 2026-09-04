@@ -89,8 +89,10 @@ patches:
       - op: replace
         path: /spec/replicas
         value: 1
-      - op: remove
+      - op: replace
         path: /spec/strategy
+        value:
+          canary: {}
       - op: add
         path: /spec/template/spec/containers/0/resources
         value:
@@ -107,8 +109,10 @@ patches:
       - op: replace
         path: /spec/replicas
         value: 1
-      - op: remove
+      - op: replace
         path: /spec/strategy
+        value:
+          canary: {}
       - op: add
         path: /spec/template/spec/containers/0/resources
         value:
