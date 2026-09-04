@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: golfapp-postgres
+  labels:
+    app: golfapp-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: golfapp-postgres
+  template:
+    metadata:
+      labels:
+        app: golfapp-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          args:
+            - -c
+            - hba_file=/etc/postgresql/pg_hba.conf
+          ports:
+            - name: postgres
+              containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: golfapp-postgres
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+              subPath: pgdata
+            - name: hba-config
+              mountPath: /etc/postgresql/pg_hba.conf
+              subPath: pg_hba.conf
+              readOnly: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          readinessProbe:
+            exec:
+              command: [pg_isready, -U, golfapp]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: [pg_isready, -U, golfapp]
+            initialDelaySeconds: 10
+            periodSeconds: 20
+      volumes:
+        - name: data
+          emptyDir: {}
+        - name: hba-config
+          configMap:
+            name: golfapp-postgres-hba
