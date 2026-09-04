@@ -6,6 +6,9 @@ resources:
   - ../web
   - ../postgres-preview
   - onepassword-item.yaml
+  - ghcr-pull-secret-onepassword-item.yaml
+  - ghcr-pull-secret-rbac.yaml
+  - ghcr-pull-secret-job.yaml
 
 patches:
   - target:
