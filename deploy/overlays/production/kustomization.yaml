@@ -7,6 +7,7 @@ resources:
   - ../../base/services/postgres
   - ../../base/services/synthetic-traffic
   # - ../../base/services/dotgolf-service
+  # - ../../base/services/coursepack-service
 
 replacements:
   - source:
