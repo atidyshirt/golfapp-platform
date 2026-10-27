@@ -12,4 +12,4 @@ resources:
 images:
 - name: ghcr.io/atidyshirt/golfapp-web
   newName: ghcr.io/atidyshirt/golfapp-web
-  newTag: 960a41924fd2c7a07146bd31f41c1bce49406aa1
+  newTag: 378c02f9a3b982a0544cc062798ad7f1225cac7e
