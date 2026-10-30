@@ -8,4 +8,4 @@ resources:
 images:
 - name: ghcr.io/atidyshirt/golfapp-coursepack-service
   newName: ghcr.io/atidyshirt/golfapp-coursepack-service
-  newTag: 5b05283302a8ce6acf5bff9fda1e3636fd45686d
+  newTag: 3700b1b91a5e322cfe43053a87c61dbf1f92fac9
