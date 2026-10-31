@@ -25,11 +25,29 @@ spec:
             - name: http
               containerPort: 80
           env:
-            # nginx.conf.template's proxy_pass target (see golfapp's
-            # apps/web/nginx.conf.template) - "golfapp-api" is this
-            # cluster's Service name, not the "api" docker-compose uses.
+            # nginx.conf.template's $api_upstream map default (see
+            # golfapp's apps/web/nginx.conf.template) - "golfapp-api" is
+            # this cluster's Service name, not the "api" docker-compose
+            # uses.
             - name: API_UPSTREAM
               value: golfapp-api
+            # The map's other branch, selected per-request by a
+            # "golf-preview.*" Host header - every web pod (active or
+            # preview) runs this exact same env either way, since both
+            # share one Rollout spec.template; routing on Host instead of
+            # a per-revision env var is what makes preview web pods
+            # actually reach preview api instead of silently falling
+            # through to stable (golfapp#ATI-105).
+            - name: API_UPSTREAM_PREVIEW
+              value: golfapp-api-preview
+            # $api_upstream being a variable makes nginx resolve it at
+            # request time, which needs an explicit resolver - this is
+            # the official nginx image's own mechanism for populating one
+            # from /etc/resolv.conf (this cluster's DNS here, same idea
+            # golfapp's docker-compose.yml uses for Docker's embedded DNS
+            # locally).
+            - name: NGINX_ENTRYPOINT_LOCAL_RESOLVERS
+              value: "1"
           readinessProbe:
             httpGet:
               path: /
