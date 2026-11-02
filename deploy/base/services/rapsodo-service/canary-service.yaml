@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: golfapp-rapsodo-service-canary
+  labels:
+    app: golfapp-rapsodo-service
+spec:
+  selector:
+    app: golfapp-rapsodo-service
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

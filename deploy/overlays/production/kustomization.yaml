@@ -8,6 +8,11 @@ resources:
   - ../../base/services/synthetic-traffic
   # - ../../base/services/dotgolf-service
   - ../../base/services/coursepack-service
+  # Not active yet - no image has been built/pushed (no trigger workflow
+  # exists until ATI-181 lands and runs once). Uncomment once GHCR has a
+  # real tag to pull, same bootstrap sequencing coursepack-service needed
+  # (see its "Activate coursepack-service in production overlay" commit).
+  # - ../../base/services/rapsodo-service
 
 replacements:
   - source:
