@@ -25,12 +25,32 @@ spec:
             - name: http
               containerPort: 80
           env:
+            # Needed to fully-qualify API_UPSTREAM/API_UPSTREAM_PREVIEW
+            # below - see their comment for why. Downward API, not a
+            # literal "golf", so this Rollout's one spec.template stays
+            # correct wherever it's actually deployed (production's
+            # fixed "golf" namespace, but also each PR-preview
+            # environment's own per-PR namespace - home-server's
+            # addon-golfapp-preview-appset.yaml controls that one, not
+            # this repo).
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
             # nginx.conf.template's $api_upstream map default (see
             # golfapp's apps/web/nginx.conf.template) - "golfapp-api" is
             # this cluster's Service name, not the "api" docker-compose
-            # uses.
+            # uses. Fully-qualified (not just "golfapp-api"): nginx
+            # resolves a proxy_pass variable per-request via its own
+            # internal resolver, which - unlike a normal libc DNS lookup -
+            # does not apply /etc/resolv.conf's search-domain expansion,
+            # so a bare Service name 502s (confirmed in production - the
+            # regression this fixes). $(POD_NAMESPACE) is Kubernetes' own
+            # env-var-reference expansion (needs POD_NAMESPACE defined
+            # earlier in this same list, which it is), not a shell/nginx
+            # variable.
             - name: API_UPSTREAM
-              value: golfapp-api
+              value: golfapp-api.$(POD_NAMESPACE).svc.cluster.local
             # The map's other branch, selected per-request by a
             # "golf-preview.*" Host header - every web pod (active or
             # preview) runs this exact same env either way, since both
@@ -39,7 +59,7 @@ spec:
             # actually reach preview api instead of silently falling
             # through to stable (golfapp#ATI-105).
             - name: API_UPSTREAM_PREVIEW
-              value: golfapp-api-preview
+              value: golfapp-api-preview.$(POD_NAMESPACE).svc.cluster.local
             # $api_upstream being a variable makes nginx resolve it at
             # request time, which needs an explicit resolver - this is
             # the official nginx image's own mechanism for populating one
